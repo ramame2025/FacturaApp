@@ -3,8 +3,7 @@
   "devCommand": "npm run dev",
   "installCommand": "npm ci",
   "framework": "vite",
-  "env": [],
-  "public": false,
+  "env": {},
   "rewrites": [
     {
       "source": "/(.*)",
