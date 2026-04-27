@@ -1,0 +1,23 @@
+{
+  "name": "facturaapp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^8.0.10"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^6.0.1",
+    "exceljs": "^4.4.0",
+    "pdfjs-dist": "^5.6.205",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "tesseract.js": "^7.0.0",
+    "xlsx": "^0.18.5"
+  }
+}
