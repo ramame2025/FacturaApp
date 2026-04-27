@@ -320,10 +320,7 @@ function App() {
             Cerrar sesion
           </button>
         </div>
-        <p>
-          Sube ticket, lee con OCR, corrige datos y exporta a Excel. Sin backend y listo para
-          deploy en Vercel.
-        </p>
+  
         <div className="hint" style={{ marginTop: "8px" }}>
           Sesion: {authUser.nombre} ({authUser.role === "admin" ? "Admin" : "Usuario"})
         </div>
