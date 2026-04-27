@@ -25,8 +25,40 @@ const mesActual = () => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 };
 
+const readFileAsDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => resolve(event.target?.result || null);
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
+    reader.readAsDataURL(file);
+  });
+
+const compressPreviewImage = (source) =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      const maxWidth = 1400;
+      const scale = Math.min(1, maxWidth / image.width);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(image.width * scale);
+      canvas.height = Math.round(image.height * scale);
+      const ctx = canvas.getContext("2d");
+
+      if (!ctx) {
+        reject(new Error("No se pudo preparar la imagen"));
+        return;
+      }
+
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.72));
+    };
+    image.onerror = () => reject(new Error("No se pudo procesar la imagen"));
+    image.src = source;
+  });
+
 function App() {
   const [authUser, setAuthUser] = useState(null);
+  const [storageReady, setStorageReady] = useState(false);
   const [adminSelectedUser, setAdminSelectedUser] = useState("");
   const [adminViewingUser, setAdminViewingUser] = useState("");
   const [imageFile, setImageFile] = useState(null);
@@ -60,6 +92,7 @@ function App() {
   // Cargar gastos del usuario actual cuando authUser cambia
   useEffect(() => {
     if (!authUser) {
+      setStorageReady(false);
       setGastos([]);
       return;
     }
@@ -94,8 +127,10 @@ function App() {
       }
       
       setGastos(gastosACargar);
+      setStorageReady(true);
     } catch {
       setGastos([]);
+      setStorageReady(true);
     }
   }, [authUser]);
 
@@ -118,7 +153,7 @@ function App() {
     });
   }, []); // Solo ejecutar una vez al montar
   useEffect(() => {
-    if (!authUser) return;
+    if (!authUser || !storageReady) return;
     
     if (authUser.role === "admin") {
       // Admin: guardar cada gasto en la clave de su usuario
@@ -140,7 +175,7 @@ function App() {
       const key = getUserStorageKey(authUser.username);
       localStorage.setItem(key, JSON.stringify(gastos));
     }
-  }, [gastos, authUser]);
+  }, [gastos, authUser, storageReady]);
 
   useEffect(() => {
     if (!authUser) return;
@@ -208,18 +243,14 @@ function App() {
     
     let imagenBase64 = null;
     
-    // Capturar imagen como base64
+    // Guardar una vista comprimida para no exceder el limite de localStorage
     if (imageFile) {
-      if (imageFile.type === "application/pdf") {
-        // Para PDF, usar imagePreview que ya es data URL
-        imagenBase64 = imagePreview;
-      } else {
-        // Para imagen, convertir a base64
-        imagenBase64 = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target.result);
-          reader.readAsDataURL(imageFile);
-        });
+      const imageSource = imageFile.type === "application/pdf"
+        ? imagePreview
+        : await readFileAsDataUrl(imageFile);
+
+      if (imageSource) {
+        imagenBase64 = await compressPreviewImage(imageSource);
       }
     }
     
@@ -276,6 +307,7 @@ function App() {
 
   const logout = () => {
     localStorage.removeItem(AUTH_KEY);
+    setStorageReady(false);
     setAuthUser(null);
     setAdminSelectedUser("");
     setAdminViewingUser("");
