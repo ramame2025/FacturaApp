@@ -71,33 +71,49 @@ export const extraerDatos = (texto) => {
   let total = "";
   let subtotal = "";
   let impuestos = "";
-  let cuit = "";
-  let proveedor = "";
-  let concepto = "";
 
-  lineas.forEach((linea) => {
-    const upper = linea.toUpperCase();
+  // Si el keyword está solo en la línea (sin número), busca en la línea siguiente
+  const amountOnLineOrNext = (i) => {
+    const a = extractAmountFromLine(lineas[i]);
+    if (a) return a;
+    return extractAmountFromLine(lineas[i + 1] || "");
+  };
+
+  for (let i = 0; i < lineas.length; i++) {
+    const upper = lineas[i].toUpperCase();
 
     if (!subtotal && upper.includes("SUBTOTAL")) {
-      subtotal = extractAmountFromLine(linea);
-      return;
-    }
-
-    if (!impuestos && (upper.includes("IVA") || upper.includes("IMPUEST"))) {
-      impuestos = extractAmountFromLine(linea);
-      return;
+      subtotal = amountOnLineOrNext(i);
+      continue;
     }
 
     if (!total && upper.includes("TOTAL") && !upper.includes("SUBTOTAL")) {
-      total = extractAmountFromLine(linea);
+      total = amountOnLineOrNext(i);
+      continue;
     }
-  });
 
-  cuit = extractCuit(lineas, texto);
-  proveedor = extractProveedor(lineas);
+    // IVA: evita matchear headers como "(IVA) [%B.I.]" — solo líneas donde IVA aparece como keyword principal
+    if (!impuestos && (upper.startsWith("IVA") || upper.includes("IMPUEST"))) {
+      const amount = amountOnLineOrNext(i);
+      // Filtra porcentajes (ej: 10.50%) — montos reales son > 1
+      if (amount && parseFloat(amount) > 1) impuestos = amount;
+      continue;
+    }
+  }
 
-  // Si no hay un concepto claro desde OCR, queda editable en blanco para el usuario.
-  concepto = "";
+  // Fallback: si no hubo línea "TOTAL", buscar "SALDO" (formato tique)
+  if (!total) {
+    for (let i = 0; i < lineas.length; i++) {
+      const upper = lineas[i].toUpperCase();
+      if (upper.startsWith("SALDO")) {
+        const amount = amountOnLineOrNext(i);
+        if (amount) { total = amount; break; }
+      }
+    }
+  }
 
-  return { total, subtotal, impuestos, cuit, proveedor, concepto };
+  const cuit = extractCuit(lineas, texto);
+  const proveedor = extractProveedor(lineas);
+
+  return { total, subtotal, impuestos, cuit, proveedor, concepto: "" };
 };
