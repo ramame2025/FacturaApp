@@ -8,6 +8,7 @@ import { extraerDatos } from "./utils/parser";
 import { exportarExcelMensual } from "./utils/excel";
 import { pdfToImageDataUrl } from "./utils/pdf";
 import { authenticate, getAllUsers } from "./utils/auth";
+import { checkRateLimit, incrementUsage, getUsageStats } from "./utils/rateLimit";
 
 const AUTH_KEY = "authUser";
 const getUserStorageKey = (username) => `gastos_${username}`;
@@ -66,6 +67,7 @@ function App() {
   const [tipoGasto, setTipoGasto] = useState(TIPOS_GASTO[0]);
   const [ocrText, setOcrText] = useState("");
   const [procesando, setProcesando] = useState(false);
+  const [usageStats, setUsageStats] = useState(getUsageStats);
   const [resultado, setResultado] = useState({
     total: "",
     subtotal: "",
@@ -219,6 +221,13 @@ function App() {
 
   const procesarFactura = async () => {
     if (!imageFile || procesando) return;
+
+    const { allowed, reason } = checkRateLimit();
+    if (!allowed) {
+      alert(reason);
+      return;
+    }
+
     setProcesando(true);
 
     try {
@@ -226,6 +235,8 @@ function App() {
         imageFile.type === "application/pdf" ? await pdfToImageDataUrl(imageFile, 2) : imageFile;
 
       const text = await reconocerTexto(sourceForOcr);
+      incrementUsage();
+      setUsageStats(getUsageStats());
       setOcrText(text);
       setResultado(extraerDatos(text));
     } catch {
@@ -439,6 +450,10 @@ function App() {
               </button>
             </div>
             {procesando ? <div className="status">Analizando con Google Vision...</div> : null}
+            <div className="hint" style={{ marginTop: "6px" }}>
+              Consultas OCR: {usageStats.week.used}/{usageStats.week.max} esta semana
+              {" · "}{usageStats.minute.used}/{usageStats.minute.max} este minuto
+            </div>
           </section>
 
           <Resultado
