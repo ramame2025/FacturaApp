@@ -66,7 +66,6 @@ function App() {
   const [tipoGasto, setTipoGasto] = useState(TIPOS_GASTO[0]);
   const [ocrText, setOcrText] = useState("");
   const [procesando, setProcesando] = useState(false);
-  const [progreso, setProgreso] = useState(0);
   const [resultado, setResultado] = useState({
     total: "",
     subtotal: "",
@@ -221,13 +220,12 @@ function App() {
   const procesarFactura = async () => {
     if (!imageFile || procesando) return;
     setProcesando(true);
-    setProgreso(0);
 
     try {
       const sourceForOcr =
         imageFile.type === "application/pdf" ? await pdfToImageDataUrl(imageFile, 2) : imageFile;
 
-      const text = await reconocerTexto(sourceForOcr, setProgreso);
+      const text = await reconocerTexto(sourceForOcr);
       setOcrText(text);
       setResultado(extraerDatos(text));
     } catch {
@@ -283,7 +281,6 @@ function App() {
       proveedor: "",
       concepto: "",
     });
-    setProgreso(0);
   };
 
   const onEliminar = (id) => {
@@ -441,7 +438,7 @@ function App() {
                 {procesando ? "Procesando..." : "Procesar OCR"}
               </button>
             </div>
-            {procesando ? <div className="status">OCR en progreso: {progreso}%</div> : null}
+            {procesando ? <div className="status">Analizando con Google Vision...</div> : null}
           </section>
 
           <Resultado
