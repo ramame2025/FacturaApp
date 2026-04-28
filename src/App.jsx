@@ -449,7 +449,7 @@ function App() {
                 {procesando ? "Procesando..." : "Procesar OCR"}
               </button>
             </div>
-            {procesando ? <div className="status">Analizando con Google Vision...</div> : null}
+            {procesando ? <div className="status">Analizando imagen...</div> : null}
             <div className="hint" style={{ marginTop: "6px" }}>
               Consultas OCR: {usageStats.week.used}/{usageStats.week.max} esta semana
               {" · "}{usageStats.minute.used}/{usageStats.minute.max} este minuto
