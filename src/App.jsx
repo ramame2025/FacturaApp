@@ -8,7 +8,7 @@ import { reconocerTexto } from "./utils/ocr";
 import { extraerDatos } from "./utils/parser";
 import { exportarExcelMensual } from "./utils/excel";
 import { pdfToImageDataUrl } from "./utils/pdf";
-import { apiLogin, apiGetGastos, apiSaveGasto, apiDeleteGasto, apiGetUsers, saveSession, clearSession, loadSession } from "./utils/api";
+import { apiLogin, apiGetGastos, apiSaveGasto, apiUploadImagen, apiDeleteGasto, apiGetUsers, saveSession, clearSession, loadSession } from "./utils/api";
 import { checkRateLimit, incrementUsage, getUsageStats } from "./utils/rateLimit";
 const TIPOS_GASTO = ["Comidas", "Hotel", "Movilidad", "Combustible", "Otros"];
 const OBLIGATORIOS_SIN_CUIT = [
@@ -176,20 +176,24 @@ function App() {
     if (!puedeGuardar) return;
     if (!authUser) return;
     
-    let imagenBase64 = null;
+    const gastoId = crypto.randomUUID();
+    const now = new Date();
+
+    // Build image source (PDF → first page render, image → read directly)
+    let imagen_url = null;
     if (imageFile) {
       const imageSource = imageFile.type === "application/pdf"
         ? imagePreview
         : await readFileAsDataUrl(imageFile);
 
       if (imageSource) {
-        imagenBase64 = await compressPreviewImage(imageSource);
+        const compressed = await compressPreviewImage(imageSource);
+        imagen_url = await apiUploadImagen(gastoId, compressed);
       }
     }
-    
-    const now = new Date();
+
     const nuevo = {
-      id: crypto.randomUUID(),
+      id: gastoId,
       fecha: now.toLocaleString("es-AR"),
       fechaISO: now.toISOString(),
       usuarioNombre: authUser.nombre,
@@ -201,11 +205,12 @@ function App() {
       proveedor: resultado.proveedor,
       concepto: resultado.concepto,
       textoOCR: ocrText,
+      imagen_url,
     };
 
     try {
-      const { imagen_url } = await apiSaveGasto(nuevo, imagenBase64);
-      setGastos((prev) => [{ ...nuevo, usuario: authUser.username, imagen_url }, ...prev]);
+      await apiSaveGasto(nuevo);
+      setGastos((prev) => [{ ...nuevo, usuario: authUser.username }, ...prev]);
       setImageFile(null);
       setOcrText("");
       setResultado({ total: "", subtotal: "", impuestos: "", cuit: "", proveedor: "", concepto: "" });

@@ -1,4 +1,3 @@
-import { put } from "@vercel/blob";
 import { getDb, validateToken } from "./_db.js";
 
 const normalizeRow = (row) => ({
@@ -54,27 +53,11 @@ export default async function handler(req, res) {
 
     // POST /api/gastos — create gasto
     if (method === "POST") {
-      const { gasto, imagenBase64 } = req.body || {};
+      const { gasto } = req.body || {};
       if (!gasto?.id) return res.status(400).json({ error: "Datos invalidos" });
 
-      // Upload image to Vercel Blob if provided
-      let imagen_url = null;
-      if (imagenBase64 && process.env.BLOB_READ_WRITE_TOKEN) {
-        try {
-          const base64Data = imagenBase64.includes(",")
-            ? imagenBase64.split(",")[1]
-            : imagenBase64;
-          const buffer = Buffer.from(base64Data, "base64");
-          const blob = await put(`tickets/${gasto.id}.jpg`, buffer, {
-            access: "public",
-            contentType: "image/jpeg",
-          });
-          imagen_url = blob.url;
-        } catch (blobErr) {
-          console.warn("[gastos] blob upload failed:", blobErr.message);
-          // Non-fatal: save gasto without image
-        }
-      }
+      // imagen_url is already a Vercel Blob URL — uploaded client-side via /api/upload-token
+      const imagen_url = gasto.imagen_url || null;
 
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 90);

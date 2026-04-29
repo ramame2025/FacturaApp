@@ -52,13 +52,40 @@ export const apiGetGastos = async () => {
   return data.gastos;
 };
 
-export const apiSaveGasto = async (gasto, imagenBase64 = null) => {
+/**
+ * Upload image file directly to Vercel Blob from the browser.
+ * Returns the public URL, or null if Blob is not configured.
+ */
+export const apiUploadImagen = async (gastoId, dataUrl) => {
+  if (!dataUrl) return null;
+  try {
+    const { upload } = await import("@vercel/blob/client");
+    const token = getToken();
+
+    // Convert dataUrl to Blob file
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const ext = blob.type === "application/pdf" ? "pdf" : "jpg";
+
+    const result = await upload(`tickets/${gastoId}.${ext}`, blob, {
+      access: "public",
+      handleUploadUrl: `${BASE}/upload-token`,
+      clientPayload: token,
+    });
+    return result.url;
+  } catch (err) {
+    console.warn("[apiUploadImagen] failed, proceeding without image:", err.message);
+    return null;
+  }
+};
+
+export const apiSaveGasto = async (gasto) => {
   const res = await fetch(`${BASE}/gastos`, {
     method: "POST",
     headers: authHeaders(),
-    body: JSON.stringify({ gasto, imagenBase64 }),
+    body: JSON.stringify({ gasto }),
   });
-  return handleResponse(res); // { ok, imagen_url }
+  return handleResponse(res); // { ok }
 };
 
 export const apiDeleteGasto = async (id) => {
