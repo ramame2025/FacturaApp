@@ -6,11 +6,20 @@ import { getDb } from "./_db.js";
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
 
-  const { key } = req.query;
+  const rawKey = req.query?.key;
+  const key = typeof rawKey === "string" ? rawKey.trim() : "";
   const secret = process.env.SETUP_SECRET;
 
-  if (!secret || key !== secret) {
-    return res.status(403).json({ error: "Forbidden" });
+  if (!secret) {
+    return res.status(500).json({ error: "SETUP_SECRET no configurada en Vercel" });
+  }
+
+  if (!key) {
+    return res.status(400).json({ error: "Falta ?key= en la URL" });
+  }
+
+  if (key !== secret.trim()) {
+    return res.status(403).json({ error: "Clave de setup invalida" });
   }
 
   try {
