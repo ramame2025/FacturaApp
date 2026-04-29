@@ -1,7 +1,7 @@
 function Resultado({ values, onChangeField, onGuardar, disabled, faltantes }) {
   return (
     <div className="panel slide-in">
-      <h2>Resultado OCR (editable)</h2>
+      <h2>Datos extraídos</h2>
       <div className="grid-2">
         <div className="field">
           <label htmlFor="total">Total</label>

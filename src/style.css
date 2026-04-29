@@ -1,10 +1,10 @@
 ﻿:root {
-  --bg: #b9babd;
-  --bg-soft: #d4d4d4;
-  --paper: #ece8df;
+  --bg: #e8e4de;
+  --bg-soft: #f0ece5;
+  --paper: #faf8f4;
   --ink: #3f3a34;
-  --muted: #6d655d;
-  --line: #bca787;
+  --muted: #7a7168;
+  --line: #d4c4aa;
   --brand: #f39b2e;
   --brand-dark: #d5821d;
   --accent: #edc43a;
@@ -20,11 +20,7 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--ink);
-  background:
-    radial-gradient(circle at 12% 8%, #edc43a 0, transparent 28%),
-    radial-gradient(circle at 88% 16%, #f39b2e 0, transparent 30%),
-    radial-gradient(circle at 82% 84%, #bc9f6a 0, transparent 24%),
-    linear-gradient(135deg, var(--bg) 0%, var(--bg-soft) 100%);
+  background: linear-gradient(160deg, #f0ece4 0%, #e4dfd6 100%);
   font-family: "Space Grotesk", "Segoe UI", sans-serif;
 }
 
@@ -58,11 +54,11 @@ h3 {
 }
 
 .hero {
-  background: linear-gradient(130deg, #efe8da 0%, #dfd2be 100%);
-  border: 1px solid #bea98b;
+  background: linear-gradient(130deg, #faf7f2 0%, #f0e9dc 100%);
+  border: 1px solid #dccfba;
   border-radius: 14px;
   padding: 14px;
-  box-shadow: 0 12px 24px rgba(66, 54, 37, 0.14);
+  box-shadow: 0 4px 16px rgba(66, 54, 37, 0.08);
 }
 
 .hero p {
@@ -75,12 +71,17 @@ h3 {
   border-radius: 14px;
   border: 1px solid var(--line);
   padding: 12px;
-  box-shadow: 0 6px 16px rgba(45, 42, 36, 0.08);
+  box-shadow: 0 2px 8px rgba(45, 42, 36, 0.06);
 }
 
 .panel h2 {
   margin-bottom: 10px;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #5a4f42;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.78rem;
 }
 
 .login-card {
@@ -127,15 +128,44 @@ h3 {
 }
 
 .uploader {
-  border: 2px dashed #b8924e;
+  border: 2px dashed #cbb99a;
   border-radius: 12px;
-  padding: 12px;
+  padding: 20px 16px;
   text-align: center;
-  background: #f5ebd7;
+  background: #fdf9f4;
+  transition: border-color 200ms ease, background 200ms ease;
+  cursor: pointer;
 }
 
-.uploader input {
-  margin-top: 10px;
+.uploader:hover,
+.uploader.drag-over {
+  border-color: var(--brand);
+  background: #fef5e7;
+}
+
+.uploader input[type="file"] {
+  display: none;
+}
+
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 9px 20px;
+  border: 1.5px solid var(--brand-dark);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--brand-dark);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 160ms, color 160ms;
+}
+
+.upload-btn:hover {
+  background: var(--brand-dark);
+  color: #fff;
 }
 
 .preview {
@@ -179,12 +209,21 @@ button {
 select,
 input,
 textarea {
-  border: 1px solid #bda586;
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: #f8f3e8;
+  border: 1px solid #d4c4aa;
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: #fff;
   color: var(--ink);
   width: 100%;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+select:focus,
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(243, 155, 46, 0.15);
 }
 
 textarea {
@@ -259,8 +298,39 @@ textarea {
 }
 
 .hint {
-  font-size: 0.88rem;
+  font-size: 0.83rem;
   color: var(--muted);
+}
+
+/* Accordion OCR text */
+.ocr-accordion summary {
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  font-size: 0.83rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.ocr-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.ocr-accordion summary::before {
+  content: "▶";
+  font-size: 0.65rem;
+  transition: transform 200ms ease;
+}
+
+.ocr-accordion[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.ocr-accordion textarea {
+  margin-top: 8px;
 }
 
 .status {
@@ -296,7 +366,7 @@ textarea {
 }
 
 .total-highlight {
-  background: linear-gradient(130deg, #f7dc87 0%, #f2cf69 100%);
+  background: linear-gradient(130deg, #fef3c7 0%, #fde68a 100%);
   border-color: #d8ae48;
 }
 

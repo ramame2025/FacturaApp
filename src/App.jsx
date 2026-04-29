@@ -420,7 +420,7 @@ function App() {
       ) : (
         <>
           <section className="panel slide-in">
-            <h2>1) Cargar y procesar</h2>
+            <h2>Cargar y procesar</h2>
             <Upload imagePreview={imagePreview} onSelectImage={setImageFile} />
 
             <div className="grid-2" style={{ marginTop: "14px" }}>
@@ -465,12 +465,14 @@ function App() {
           />
 
           <section className="panel slide-in">
-            <h2>Texto OCR detectado</h2>
-            <textarea
-              value={ocrText}
-              onChange={(e) => setOcrText(e.target.value)}
-              placeholder="Aca se vera el texto reconocido..."
-            />
+            <details className="ocr-accordion">
+              <summary>Ver texto OCR crudo</summary>
+              <textarea
+                value={ocrText}
+                onChange={(e) => setOcrText(e.target.value)}
+                placeholder="Aca se vera el texto reconocido..."
+              />
+            </details>
           </section>
         </>
       )}
