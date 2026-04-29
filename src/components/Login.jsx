@@ -4,15 +4,17 @@ function Login({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
-    const ok = onLogin(username.trim(), password);
+    setLoading(true);
+    setError("");
+    const ok = await onLogin(username.trim(), password);
+    setLoading(false);
     if (!ok) {
       setError("Credenciales invalidas. Proba nuevamente.");
-      return;
     }
-    setError("");
   };
 
   return (
@@ -47,8 +49,8 @@ function Login({ onLogin }) {
 
           {error ? <div className="status" style={{ color: "#b91c1c" }}>{error}</div> : null}
 
-          <button className="btn btn-primary" type="submit">
-            Ingresar
+          <button className="btn btn-primary" type="submit" disabled={loading}>
+            {loading ? "Ingresando..." : "Ingresar"}
           </button>
         </form>
 

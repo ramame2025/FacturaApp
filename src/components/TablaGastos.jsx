@@ -132,10 +132,10 @@ function TablaGastos({
                   <td>{g.subtotal || "-"}</td>
                   <td>{g.impuestos || "-"}</td>
                   <td>
-                    {g.imagenBase64 ? (
+                    {(g.imagen_url || g.imagenBase64) ? (
                       <button
                         className="btn btn-secondary"
-                        onClick={() => setImagenModal(g.imagenBase64)}
+                        onClick={() => setImagenModal(g.imagen_url || g.imagenBase64)}
                       >
                         Ver
                       </button>
@@ -172,10 +172,10 @@ function TablaGastos({
               <p>Subtotal: {money(toNumber(g.subtotal))}</p>
               <p>Impuestos: {money(toNumber(g.impuestos))}</p>
               <p className="mobile-total">Total: {money(toNumber(g.total))}</p>
-              {g.imagenBase64 && (
+              {(g.imagen_url || g.imagenBase64) && (
                 <button
                   className="btn btn-secondary"
-                  onClick={() => setImagenModal(g.imagenBase64)}
+                  onClick={() => setImagenModal(g.imagen_url || g.imagenBase64)}
                   style={{ marginBottom: "8px" }}
                 >
                   Ver imagen

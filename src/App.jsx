@@ -2,16 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import Upload from "./components/Upload";
 import Resultado from "./components/Resultado";
 import TablaGastos from "./components/TablaGastos";
+import AdminUsers from "./components/AdminUsers";
 import Login from "./components/Login";
 import { reconocerTexto } from "./utils/ocr";
 import { extraerDatos } from "./utils/parser";
 import { exportarExcelMensual } from "./utils/excel";
 import { pdfToImageDataUrl } from "./utils/pdf";
-import { authenticate, getAllUsers } from "./utils/auth";
+import { apiLogin, apiGetGastos, apiSaveGasto, apiDeleteGasto, apiGetUsers, saveSession, clearSession, loadSession } from "./utils/api";
 import { checkRateLimit, incrementUsage, getUsageStats } from "./utils/rateLimit";
-
-const AUTH_KEY = "authUser";
-const getUserStorageKey = (username) => `gastos_${username}`;
 const TIPOS_GASTO = ["Comidas", "Hotel", "Movilidad", "Combustible", "Otros"];
 const OBLIGATORIOS_SIN_CUIT = [
   ["total", "Total"],
@@ -59,7 +57,8 @@ const compressPreviewImage = (source) =>
 
 function App() {
   const [authUser, setAuthUser] = useState(null);
-  const [storageReady, setStorageReady] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [gastosLoading, setGastosLoading] = useState(false);
   const [adminSelectedUser, setAdminSelectedUser] = useState("");
   const [adminViewingUser, setAdminViewingUser] = useState("");
   const [imageFile, setImageFile] = useState(null);
@@ -79,108 +78,35 @@ function App() {
   const [gastos, setGastos] = useState([]);
   const [mesExportacion, setMesExportacion] = useState(mesActual());
 
+  // Restore session on mount
   useEffect(() => {
     try {
-      const savedAuth = JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
-      if (savedAuth?.username && savedAuth?.role) {
-        setAuthUser(savedAuth);
+      const session = loadSession();
+      if (session?.user?.username && session?.token) {
+        setAuthUser(session.user);
       }
     } catch {
       setAuthUser(null);
     }
   }, []);
 
-  // Cargar gastos del usuario actual cuando authUser cambia
+  // Load gastos from API when user logs in
   useEffect(() => {
     if (!authUser) {
-      setStorageReady(false);
       setGastos([]);
       return;
     }
-    try {
-      let gastosACargar = [];
-      
-      if (authUser.role === "admin") {
-        // Admin carga gastos de TODOS los usuarios
-        const users = getAllUsers();
-        users.forEach((u) => {
-          const key = getUserStorageKey(u.username);
-          const saved = JSON.parse(localStorage.getItem(key) || "[]");
-          if (Array.isArray(saved)) {
-            gastosACargar.push(
-              ...saved.map((g) => ({
-                ...g,
-                concepto: g.concepto || g.descripcion || "",
-              }))
-            );
-          }
-        });
-      } else {
-        // Usuario normal carga solo sus propios gastos
-        const key = getUserStorageKey(authUser.username);
-        const saved = JSON.parse(localStorage.getItem(key) || "[]");
-        if (Array.isArray(saved)) {
-          gastosACargar = saved.map((g) => ({
-            ...g,
-            concepto: g.concepto || g.descripcion || "",
-          }));
-        }
-      }
-      
-      setGastos(gastosACargar);
-      setStorageReady(true);
-    } catch {
-      setGastos([]);
-      setStorageReady(true);
-    }
+    setGastosLoading(true);
+    apiGetGastos()
+      .then(setGastos)
+      .catch(() => setGastos([]))
+      .finally(() => setGastosLoading(false));
   }, [authUser]);
 
-  // Limpiar imágenes antiguas (>30 días) automáticamente
+  // Load users list (admin only)
   useEffect(() => {
-    setGastos((prev) => {
-      const now = Date.now();
-      const treintaDias = 30 * 24 * 60 * 60 * 1000;
-      
-      return prev.map((g) => {
-        const fechaGasto = new Date(g.fechaISO).getTime();
-        const diasTranscurridos = (now - fechaGasto) / (24 * 60 * 60 * 1000);
-        
-        // Si pasaron más de 30 días, eliminar imagen
-        if (diasTranscurridos > 30 && g.imagenBase64) {
-          return { ...g, imagenBase64: null };
-        }
-        return g;
-      });
-    });
-  }, []); // Solo ejecutar una vez al montar
-  useEffect(() => {
-    if (!authUser || !storageReady) return;
-    
-    if (authUser.role === "admin") {
-      // Admin: guardar cada gasto en la clave de su usuario
-      const gastosPorUsuario = {};
-      gastos.forEach((g) => {
-        const key = getUserStorageKey(g.usuario);
-        if (!gastosPorUsuario[key]) {
-          gastosPorUsuario[key] = [];
-        }
-        gastosPorUsuario[key].push(g);
-      });
-      
-      // Guardar cada grupo en su clave
-      Object.entries(gastosPorUsuario).forEach(([key, gastosUser]) => {
-        localStorage.setItem(key, JSON.stringify(gastosUser));
-      });
-    } else {
-      // Usuario normal: guardar solo sus gastos en su clave
-      const key = getUserStorageKey(authUser.username);
-      localStorage.setItem(key, JSON.stringify(gastos));
-    }
-  }, [gastos, authUser, storageReady]);
-
-  useEffect(() => {
-    if (!authUser) return;
-    localStorage.setItem(AUTH_KEY, JSON.stringify(authUser));
+    if (authUser?.role !== "admin") return;
+    apiGetUsers().then(setUsers).catch(() => {});
   }, [authUser]);
 
   useEffect(() => {
@@ -251,8 +177,6 @@ function App() {
     if (!authUser) return;
     
     let imagenBase64 = null;
-    
-    // Guardar una vista comprimida para no exceder el limite de localStorage
     if (imageFile) {
       const imageSource = imageFile.type === "application/pdf"
         ? imagePreview
@@ -268,7 +192,6 @@ function App() {
       id: crypto.randomUUID(),
       fecha: now.toLocaleString("es-AR"),
       fechaISO: now.toISOString(),
-      usuario: authUser.username,
       usuarioNombre: authUser.nombre,
       tipoGasto,
       total: resultado.total,
@@ -278,45 +201,44 @@ function App() {
       proveedor: resultado.proveedor,
       concepto: resultado.concepto,
       textoOCR: ocrText,
-      imagenBase64, // ← Guardar la imagen
     };
 
-    setGastos((prev) => [nuevo, ...prev]);
-    setImageFile(null);
-    setOcrText("");
-    setResultado({
-      total: "",
-      subtotal: "",
-      impuestos: "",
-      cuit: "",
-      proveedor: "",
-      concepto: "",
-    });
-  };
-
-  const onEliminar = (id) => {
-    const gastoAEliminar = gastos.find((g) => g.id === id);
-    
-    // Validar permisos: usuario normal solo puede eliminar sus propios gastos
-    if (authUser.role !== "admin" && gastoAEliminar?.usuario !== authUser.username) {
-      alert("No tienes permiso para eliminar este gasto");
-      return;
+    try {
+      const { imagen_url } = await apiSaveGasto(nuevo, imagenBase64);
+      setGastos((prev) => [{ ...nuevo, usuario: authUser.username, imagen_url }, ...prev]);
+      setImageFile(null);
+      setOcrText("");
+      setResultado({ total: "", subtotal: "", impuestos: "", cuit: "", proveedor: "", concepto: "" });
+    } catch (err) {
+      alert("Error al guardar: " + err.message);
     }
-    
-    setGastos((prev) => prev.filter((g) => g.id !== id));
   };
 
-  const login = (username, password) => {
-    const user = authenticate(username, password);
-    if (!user) return false;
-    setAuthUser(user);
-    return true;
+  const onEliminar = async (id) => {
+    try {
+      await apiDeleteGasto(id);
+      setGastos((prev) => prev.filter((g) => g.id !== id));
+    } catch (err) {
+      alert("Error al eliminar: " + err.message);
+    }
+  };
+
+  const login = async (username, password) => {
+    try {
+      const { token, user } = await apiLogin(username, password);
+      saveSession(token, user);
+      setAuthUser(user);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const logout = () => {
-    localStorage.removeItem(AUTH_KEY);
-    setStorageReady(false);
+    clearSession();
     setAuthUser(null);
+    setUsers([]);
+    setGastos([]);
     setAdminSelectedUser("");
     setAdminViewingUser("");
   };
@@ -325,7 +247,6 @@ function App() {
     return <Login onLogin={login} />;
   }
 
-  const users = getAllUsers();
   const usersWithCounts = users
     .filter((u) => u.role === "user")
     .map((u) => ({
@@ -367,6 +288,7 @@ function App() {
       </section>
 
       {authUser.role === "admin" ? (
+        <>
         <section className="panel slide-in">
           <h2>Vista Admin · Usuarios</h2>
           <div className="actions admin-tools">
@@ -417,6 +339,9 @@ function App() {
 
           <div className="hint">Vista actual: {vistaAdminLabel}</div>
         </section>
+
+        <AdminUsers onUsersChange={setUsers} />
+        </>
       ) : (
         <>
           <section className="panel slide-in">
