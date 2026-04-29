@@ -12,9 +12,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Metodo no permitido" });
   }
 
-  const apiKey = process.env.GOOGLE_CLOUD_VISION_API_KEY;
+  const apiKey = process.env.VITE_GOOGLE_VISION_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: "Falta GOOGLE_CLOUD_VISION_API_KEY" });
+    return res.status(500).json({ error: "Falta VITE_GOOGLE_VISION_API_KEY" });
   }
 
   const imageDataUrl = req.body?.imageDataUrl;
