@@ -47,9 +47,9 @@ const server = http.createServer(async (req, res) => {
     return json(res, 404, { error: "Ruta no encontrada" });
   }
 
-  const apiKey = process.env.GOOGLE_CLOUD_VISION_API_KEY;
+  const apiKey = process.env.VITE_GOOGLE_VISION_API_KEY;
   if (!apiKey) {
-    return json(res, 500, { error: "Falta GOOGLE_CLOUD_VISION_API_KEY en .env.local" });
+    return json(res, 500, { error: "Falta VITE_GOOGLE_VISION_API_KEY en .env.local" });
   }
 
   try {

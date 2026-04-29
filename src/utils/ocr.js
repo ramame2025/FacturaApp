@@ -17,21 +17,33 @@ const normalizeToDataUrl = async (imagen) => {
 };
 
 const reconocerTextoConVision = async (imagenDataUrl) => {
-  const response = await fetch("/api/ocr", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ imageDataUrl: imagenDataUrl }),
-  });
+  try {
+    const response = await fetch("/api/ocr", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ imageDataUrl: imagenDataUrl }),
+    });
 
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(detail || "Error de OCR en Google Vision");
+    if (!response.ok) {
+      let detail = `HTTP ${response.status}`;
+      try {
+        const json = await response.json();
+        detail = json?.error || detail;
+      } catch {
+        detail = await response.text();
+      }
+      throw new Error(detail || "Error de OCR en Google Vision");
+    }
+
+    const payload = await response.json();
+    return payload?.text || "";
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[Vision API Error]", msg);
+    throw error;
   }
-
-  const payload = await response.json();
-  return payload?.text || "";
 };
 
 const reconocerTextoConTesseract = async (imagen, onProgress) => {
@@ -53,10 +65,23 @@ export const reconocerTexto = async (imagen, onProgress) => {
     if (onProgress) onProgress(35);
 
     const text = await reconocerTextoConVision(imageDataUrl);
-    if (onProgress) onProgress(100);
-    return text;
-  } catch (error) {
-    console.warn("Vision OCR no disponible, usando fallback Tesseract:", error);
+    if (text && text.trim().length > 0) {
+      if (onProgress) onProgress(100);
+      return text;
+    }
+    
+    // Si Vision retorna texto vacío, usar fallback
+    console.warn("Vision retornó texto vacío, usando Tesseract");
     return reconocerTextoConTesseract(imagen, onProgress);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.warn(`[OCR Fallback] Vision falló (${msg}), usando Tesseract...`);
+    try {
+      return await reconocerTextoConTesseract(imagen, onProgress);
+    } catch (tesseractError) {
+      const tesMsg = tesseractError instanceof Error ? tesseractError.message : String(tesseractError);
+      console.error(`[OCR Fatal] Ambos OCRs fallaron. Vision: ${msg}, Tesseract: ${tesMsg}`);
+      throw new Error(`OCR no disponible: ${msg}`);
+    }
   }
 };
