@@ -5,7 +5,7 @@
 ## 🎯 Características
 
 - 📸 **Upload de imágenes y PDFs** - Drag & drop o seleccionar archivo
-- 🤖 **OCR automático** - Extrae Total, Subtotal, Impuestos, CUIT, Proveedor y Concepto con Tesseract.js
+- 🤖 **OCR automático** - Usa Google Cloud Vision API (con fallback a Tesseract.js)
 - ✏️ **Edición de datos** - Corrige campos extraídos antes de guardar
 - 💾 **Persistencia local** - localStorage por usuario (sin backend)
 - 👤 **Multi-usuario** - 3 usuarios + 1 admin con control de permisos
@@ -29,6 +29,24 @@ npm run dev
 
 La app abrirá en `http://localhost:5173` (o 5174 si 5173 está en uso)
 
+### Usar Google Vision en local
+Para que funcione la ruta de API (`/api/ocr`) en desarrollo, usá Vercel Dev:
+
+1. Copiá `.env.local.example` a `.env.local`
+2. Completá la variable:
+
+```bash
+GOOGLE_CLOUD_VISION_API_KEY=tu_api_key
+```
+
+3. Ejecutá:
+
+```bash
+npm run dev:vision
+```
+
+Esto levanta frontend + funciones API y habilita Google Vision en local.
+
 ## 🔐 Usuarios de prueba
 
 | Usuario | Contraseña | Rol |
@@ -42,7 +60,7 @@ La app abrirá en `http://localhost:5173` (o 5174 si 5173 está en uso)
 
 - **Frontend**: React 19.2.5
 - **Build**: Vite 8.0.10
-- **OCR**: Tesseract.js 7.0.0 (Spanish language)
+- **OCR**: Google Cloud Vision API + Tesseract.js 7.0.0 (fallback)
 - **PDF**: pdfjs-dist 5.6.205
 - **Excel**: ExcelJS (estilos avanzados)
 - **Storage**: localStorage (multi-usuario por clave)
@@ -58,12 +76,15 @@ src/
 │   ├── Resultado.jsx       # Editable form para datos extraídos
 │   └── TablaGastos.jsx     # Tabla/cards de gastos + galería de imágenes
 ├── utils/
-│   ├── ocr.js              # Tesseract.js integration
+│   ├── ocr.js              # Vision API client + fallback local OCR
 │   ├── parser.js           # Regex para extraer campos financieros
 │   ├── pdf.js              # PDF to image conversion
 │   ├── excel.js            # ExcelJS export con styling
 │   └── auth.js             # User credentials y roles
 └── style.css               # Mobile-first responsive CSS
+
+api/
+└── ocr.js                  # Vercel Function proxy a Google Vision
 ```
 
 ## 💡 Funcionalidades por rol
@@ -104,10 +125,29 @@ npm run preview # Preview del build
 - Limpieza de imágenes antiguas: >30 días se eliminan automáticamente
 
 **OCR:**
-- Tesseract.js configurado para español
+- Google Cloud Vision API (DOCUMENT_TEXT_DETECTION) como motor principal
+- Fallback automático a Tesseract.js si la API falla o no está configurada
 - Extrae números (Total, Subtotal, Impuestos) con regex flexible
 - Detecta CUIT en formato XX-XXXXXXXX-X
 - Heurística para identificar proveedor
+
+## ☁️ Configuración de Google Vision
+
+Para usar OCR en producción con Google Vision, agregá esta variable en Vercel:
+
+```bash
+GOOGLE_CLOUD_VISION_API_KEY=tu_api_key
+```
+
+Pasos mínimos en Google Cloud:
+1. Crear proyecto en Google Cloud.
+2. Habilitar Cloud Vision API.
+3. Crear API Key restringida para Vision API.
+4. Configurar la variable en Vercel (Project Settings > Environment Variables).
+
+Si la variable no está presente o falla la API, la app usa Tesseract local como respaldo.
+
+Nota: con `npm run dev` (Vite solo), la ruta `/api/ocr` devuelve 404 en local. Para probar Vision localmente usá `npm run dev:vision`.
 
 **Excel:**
 - Template-style con estilos (bordes, fonts, row heights)
@@ -124,7 +164,7 @@ npm run preview # Preview del build
 
 ## 🚢 Deploy
 
-Listo para deploy en **Vercel** (sin backend requerido)
+Listo para deploy en **Vercel** (incluye Function en `api/ocr.js` para OCR seguro)
 
 ## 📄 Licencia
 

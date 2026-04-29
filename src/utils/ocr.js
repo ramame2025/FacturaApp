@@ -1,40 +1,62 @@
-const VISION_URL = "https://vision.googleapis.com/v1/images:annotate";
+import Tesseract from "tesseract.js";
 
-const toBase64 = (source) => {
-  if (typeof source === "string") {
-    return source.includes(",") ? source.split(",")[1] : source;
-  }
-  return new Promise((resolve, reject) => {
+const isDataUrl = (value) => typeof value === "string" && value.startsWith("data:");
+
+const fileToDataUrl = (file) =>
+  new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result || "";
-      resolve(dataUrl.includes(",") ? dataUrl.split(",")[1] : dataUrl);
-    };
-    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
-    reader.readAsDataURL(source);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("No se pudo leer la imagen"));
+    reader.readAsDataURL(file);
   });
+
+const normalizeToDataUrl = async (imagen) => {
+  if (isDataUrl(imagen)) return imagen;
+  if (imagen instanceof File) return fileToDataUrl(imagen);
+  throw new Error("Formato de imagen no soportado para OCR");
 };
 
-export const reconocerTexto = async (source) => {
-  const apiKey = import.meta.env.VITE_GOOGLE_VISION_API_KEY;
-  const base64 = await toBase64(source);
-
-  const response = await fetch(`${VISION_URL}?key=${apiKey}`, {
+const reconocerTextoConVision = async (imagenDataUrl) => {
+  const response = await fetch("/api/ocr", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      requests: [{
-        image: { content: base64 },
-        features: [{ type: "DOCUMENT_TEXT_DETECTION" }],
-        imageContext: { languageHints: ["es"] },
-      }],
-    }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ imageDataUrl: imagenDataUrl }),
   });
 
-  if (!response.ok) throw new Error(`Google Vision error: ${response.status}`);
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(detail || "Error de OCR en Google Vision");
+  }
 
-  const data = await response.json();
-  if (data.responses?.[0]?.error) throw new Error(data.responses[0].error.message);
+  const payload = await response.json();
+  return payload?.text || "";
+};
 
-  return data.responses?.[0]?.fullTextAnnotation?.text || "";
+const reconocerTextoConTesseract = async (imagen, onProgress) => {
+  const result = await Tesseract.recognize(imagen, "spa", {
+    logger: (m) => {
+      if (m.status === "recognizing text" && onProgress) {
+        onProgress(Math.round((m.progress || 0) * 100));
+      }
+    },
+  });
+
+  return result.data.text || "";
+};
+
+export const reconocerTexto = async (imagen, onProgress) => {
+  try {
+    if (onProgress) onProgress(10);
+    const imageDataUrl = await normalizeToDataUrl(imagen);
+    if (onProgress) onProgress(35);
+
+    const text = await reconocerTextoConVision(imageDataUrl);
+    if (onProgress) onProgress(100);
+    return text;
+  } catch (error) {
+    console.warn("Vision OCR no disponible, usando fallback Tesseract:", error);
+    return reconocerTextoConTesseract(imagen, onProgress);
+  }
 };
