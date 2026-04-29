@@ -1,5 +1,7 @@
 import Tesseract from "tesseract.js";
 
+const VISION_URL = "https://vision.googleapis.com/v1/images:annotate";
+
 const isDataUrl = (value) => typeof value === "string" && value.startsWith("data:");
 
 const fileToDataUrl = (file) =>
@@ -16,14 +18,38 @@ const normalizeToDataUrl = async (imagen) => {
   throw new Error("Formato de imagen no soportado para OCR");
 };
 
+const extractImageContent = (imageDataUrl) => {
+  if (typeof imageDataUrl !== "string") return "";
+  const commaIndex = imageDataUrl.indexOf(",");
+  if (commaIndex === -1) return "";
+  return imageDataUrl.slice(commaIndex + 1).trim();
+};
+
 const reconocerTextoConVision = async (imagenDataUrl) => {
   try {
-    const response = await fetch("/api/ocr", {
+    const apiKey = import.meta.env.VITE_GOOGLE_VISION_API_KEY;
+    if (!apiKey) {
+      throw new Error("Falta VITE_GOOGLE_VISION_API_KEY");
+    }
+
+    const imageContent = extractImageContent(imagenDataUrl);
+    if (!imageContent) {
+      throw new Error("imageDataUrl invalido");
+    }
+
+    const response = await fetch(`${VISION_URL}?key=${apiKey}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ imageDataUrl: imagenDataUrl }),
+      body: JSON.stringify({
+        requests: [
+          {
+            image: { content: imageContent },
+            features: [{ type: "DOCUMENT_TEXT_DETECTION" }],
+          },
+        ],
+      }),
     });
 
     if (!response.ok) {
@@ -38,7 +64,7 @@ const reconocerTextoConVision = async (imagenDataUrl) => {
     }
 
     const payload = await response.json();
-    return payload?.text || "";
+    return payload?.responses?.[0]?.fullTextAnnotation?.text || "";
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("[Vision API Error]", msg);
