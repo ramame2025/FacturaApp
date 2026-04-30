@@ -1,4 +1,4 @@
-import { handleUpload } from "@vercel/blob";
+import { handleUpload } from "@vercel/blob/client";
 import { getDb } from "./_db.js";
 
 // Client-side upload handler: issues a signed token so the browser
