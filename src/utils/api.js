@@ -68,7 +68,7 @@ export const apiUploadImagen = async (gastoId, dataUrl) => {
     const ext = blob.type === "application/pdf" ? "pdf" : "jpg";
 
     const result = await upload(`tickets/${gastoId}.${ext}`, blob, {
-      access: "public",
+      access: "private",
       handleUploadUrl: `${BASE}/upload-token`,
       clientPayload: token,
     });
