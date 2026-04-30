@@ -79,6 +79,21 @@ export const apiUploadImagen = async (gastoId, dataUrl) => {
   }
 };
 
+export const apiGetImagenPrivada = async (url) => {
+  if (!url) throw new Error("URL de imagen vacia");
+
+  const res = await fetch(`${BASE}/imagen?url=${encodeURIComponent(url)}`, {
+    headers: authHeaders(),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Error ${res.status}`);
+  }
+
+  return res.blob();
+};
+
 export const apiSaveGasto = async (gasto) => {
   const res = await fetch(`${BASE}/gastos`, {
     method: "POST",

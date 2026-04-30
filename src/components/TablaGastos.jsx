@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { apiGetImagenPrivada } from "../utils/api";
 
 const toNumber = (value) => {
   if (value == null || value === "") return 0;
@@ -27,6 +28,34 @@ function TablaGastos({
 }) {
   const [tipoFiltro, setTipoFiltro] = useState("Todos");
   const [imagenModal, setImagenModal] = useState(null); // Para mostrar imagen en modal
+
+  const abrirImagen = async (url) => {
+    if (!url) return;
+
+    // Compatibilidad con datos historicos en base64
+    if (url.startsWith("data:")) {
+      setImagenModal(url);
+      return;
+    }
+
+    try {
+      const blob = await apiGetImagenPrivada(url);
+      const objectUrl = URL.createObjectURL(blob);
+      setImagenModal((prev) => {
+        if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return objectUrl;
+      });
+    } catch (err) {
+      alert(err.message || "No se pudo abrir la imagen");
+    }
+  };
+
+  const cerrarModal = () => {
+    setImagenModal((prev) => {
+      if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return null;
+    });
+  };
 
   const tiposDisponibles = useMemo(() => {
     const setTipos = new Set(gastos.map((g) => g.tipoGasto).filter(Boolean));
@@ -135,7 +164,7 @@ function TablaGastos({
                     {(g.imagen_url || g.imagenBase64) ? (
                       <button
                         className="btn btn-secondary"
-                        onClick={() => setImagenModal(g.imagen_url || g.imagenBase64)}
+                        onClick={() => abrirImagen(g.imagen_url || g.imagenBase64)}
                       >
                         Ver
                       </button>
@@ -175,7 +204,7 @@ function TablaGastos({
               {(g.imagen_url || g.imagenBase64) && (
                 <button
                   className="btn btn-secondary"
-                  onClick={() => setImagenModal(g.imagen_url || g.imagenBase64)}
+                  onClick={() => abrirImagen(g.imagen_url || g.imagenBase64)}
                   style={{ marginBottom: "8px" }}
                 >
                   Ver imagen
@@ -205,7 +234,7 @@ function TablaGastos({
             zIndex: 9999,
             padding: "20px",
           }}
-          onClick={() => setImagenModal(null)}
+          onClick={cerrarModal}
         >
           <div
             style={{
@@ -220,7 +249,7 @@ function TablaGastos({
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              onClick={() => setImagenModal(null)}
+              onClick={cerrarModal}
               style={{
                 position: "absolute",
                 top: "10px",
