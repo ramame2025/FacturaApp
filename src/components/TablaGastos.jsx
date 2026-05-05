@@ -18,6 +18,11 @@ const money = (value) =>
     minimumFractionDigits: 2,
   }).format(value || 0);
 
+const moneyOrDash = (value) => {
+  if (value == null || value === "") return "-";
+  return money(toNumber(value));
+};
+
 function TablaGastos({
   gastos,
   onExportar,
@@ -146,7 +151,9 @@ function TablaGastos({
           <tbody>
             {gastosFiltrados.length === 0 ? (
               <tr>
-                <td colSpan={showUsuarioColumn ? 11 : 10}>Todavia no hay gastos guardados.</td>
+                <td colSpan={showUsuarioColumn ? 11 : 10} className="empty-state">
+                  Todavia no hay gastos guardados.
+                </td>
               </tr>
             ) : (
               gastosFiltrados.map((g) => (
@@ -157,9 +164,9 @@ function TablaGastos({
                   <td>{g.proveedor || "-"}</td>
                   <td>{g.cuit || "-"}</td>
                   <td>{g.concepto || g.descripcion || "-"}</td>
-                  <td>{g.total || "-"}</td>
-                  <td>{g.subtotal || "-"}</td>
-                  <td>{g.impuestos || "-"}</td>
+                  <td>{moneyOrDash(g.total)}</td>
+                  <td>{moneyOrDash(g.subtotal)}</td>
+                  <td>{moneyOrDash(g.impuestos)}</td>
                   <td>
                     {(g.imagen_url || g.imagenBase64) ? (
                       <button
@@ -186,7 +193,7 @@ function TablaGastos({
 
       <div className="mobile-cards">
         {gastosFiltrados.length === 0 ? (
-          <div className="hint">Todavia no hay gastos guardados.</div>
+          <div className="hint empty-state">Todavia no hay gastos guardados.</div>
         ) : (
           gastosFiltrados.map((g) => (
             <article key={`mobile-${g.id}`} className="gasto-card">
@@ -221,60 +228,20 @@ function TablaGastos({
       {/* Modal para ver imagen */}
       {imagenModal && (
         <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            padding: "20px",
-          }}
+          className="image-modal-backdrop"
           onClick={cerrarModal}
         >
           <div
-            style={{
-              backgroundColor: "white",
-              borderRadius: "8px",
-              padding: "20px",
-              maxWidth: "90%",
-              maxHeight: "90%",
-              overflow: "auto",
-              position: "relative",
-            }}
+            className="image-modal"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={cerrarModal}
-              style={{
-                position: "absolute",
-                top: "10px",
-                right: "10px",
-                background: "#9f7f4f",
-                color: "white",
-                border: "none",
-                borderRadius: "50%",
-                width: "30px",
-                height: "30px",
-                fontSize: "18px",
-                cursor: "pointer",
-              }}
+              className="image-modal-close"
             >
               ✕
             </button>
-            <img
-              src={imagenModal}
-              alt="Recibo"
-              style={{
-                maxWidth: "100%",
-                maxHeight: "100%",
-                borderRadius: "4px",
-              }}
-            />
+            <img src={imagenModal} alt="Recibo" />
           </div>
         </div>
       )}

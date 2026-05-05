@@ -277,6 +277,8 @@ function App() {
         : "Todos"
       : authUser.nombre;
 
+  const esAdmin = authUser.role === "admin";
+
   return (
     <main className="layout">
       <section className="hero slide-in">
@@ -286,13 +288,26 @@ function App() {
             Cerrar sesion
           </button>
         </div>
-  
-        <div className="hint" style={{ marginTop: "8px" }}>
-          Sesion: {authUser.nombre} ({authUser.role === "admin" ? "Admin" : "Usuario"})
+
+        <div className="hint hero-meta">
+          Sesion: {authUser.nombre} ({esAdmin ? "Admin" : "Usuario"})
+        </div>
+        <div className="hero-kpis" role="status" aria-live="polite">
+          <span className="hero-kpi">Gastos cargados: {gastos.length}</span>
+          {!esAdmin ? (
+            <span className="hero-kpi">
+              OCR semanal: {usageStats.week.used}/{usageStats.week.max}
+            </span>
+          ) : null}
+          {!esAdmin ? (
+            <span className="hero-kpi">
+              OCR minuto: {usageStats.minute.used}/{usageStats.minute.max}
+            </span>
+          ) : null}
         </div>
       </section>
 
-      {authUser.role === "admin" ? (
+      {esAdmin ? (
         <>
         <section className="panel slide-in">
           <h2>Vista Admin · Usuarios</h2>
@@ -348,12 +363,12 @@ function App() {
         <AdminUsers onUsersChange={setUsers} />
         </>
       ) : (
-        <>
-          <section className="panel slide-in">
+        <div className="user-workspace">
+          <section className="panel slide-in workspace-main">
             <h2>Cargar y procesar</h2>
             <Upload imagePreview={imagePreview} onSelectImage={setImageFile} />
 
-            <div className="grid-2" style={{ marginTop: "14px" }}>
+            <div className="grid-2 section-gap-sm">
               <div className="field">
                 <label htmlFor="tipo-gasto">Tipo de gasto</label>
                 <select
@@ -380,31 +395,33 @@ function App() {
               </button>
             </div>
             {procesando ? <div className="status">Analizando imagen...</div> : null}
-            <div className="hint" style={{ marginTop: "6px" }}>
+            <div className="hint ocr-usage-hint">
               Consultas OCR: {usageStats.week.used}/{usageStats.week.max} esta semana
               {" · "}{usageStats.minute.used}/{usageStats.minute.max} este minuto
             </div>
           </section>
 
-          <Resultado
-            values={resultado}
-            onChangeField={(key, value) => setResultado((prev) => ({ ...prev, [key]: value }))}
-            onGuardar={onGuardar}
-            disabled={!puedeGuardar}
-            faltantes={faltantesObligatorios}
-          />
+          <div className="workspace-side">
+            <Resultado
+              values={resultado}
+              onChangeField={(key, value) => setResultado((prev) => ({ ...prev, [key]: value }))}
+              onGuardar={onGuardar}
+              disabled={!puedeGuardar}
+              faltantes={faltantesObligatorios}
+            />
 
-          <section className="panel slide-in">
-            <details className="ocr-accordion">
-              <summary>Ver texto OCR crudo</summary>
-              <textarea
-                value={ocrText}
-                onChange={(e) => setOcrText(e.target.value)}
-                placeholder="Aca se vera el texto reconocido..."
-              />
-            </details>
-          </section>
-        </>
+            <section className="panel slide-in">
+              <details className="ocr-accordion">
+                <summary>Ver texto OCR crudo</summary>
+                <textarea
+                  value={ocrText}
+                  onChange={(e) => setOcrText(e.target.value)}
+                  placeholder="Aca se vera el texto reconocido..."
+                />
+              </details>
+            </section>
+          </div>
+        </div>
       )}
 
       <TablaGastos

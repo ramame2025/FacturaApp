@@ -59,7 +59,7 @@ function Resultado({ values, onChangeField, onGuardar, disabled, faltantes }) {
         </div>
       </div>
       {faltantes.length > 0 ? (
-        <div className="status" style={{ color: "#b91c1c" }}>
+        <div className="status status-error">
           Para guardar, completa: {faltantes.join(", ")}.
         </div>
       ) : null}

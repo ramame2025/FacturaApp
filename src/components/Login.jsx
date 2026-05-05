@@ -47,7 +47,7 @@ function Login({ onLogin }) {
             />
           </div>
 
-          {error ? <div className="status" style={{ color: "#b91c1c" }}>{error}</div> : null}
+          {error ? <div className="status status-error">{error}</div> : null}
 
           <button className="btn btn-primary" type="submit" disabled={loading}>
             {loading ? "Ingresando..." : "Ingresar"}

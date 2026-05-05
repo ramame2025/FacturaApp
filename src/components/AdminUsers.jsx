@@ -81,33 +81,31 @@ function AdminUsers({ onUsersChange }) {
     <section className="panel slide-in">
       <h2>Gestión de usuarios</h2>
 
-      {error   && <div className="status" style={{ color: "#b91c1c", marginBottom: "10px" }}>{error}</div>}
-      {success && <div className="status" style={{ color: "#166534", marginBottom: "10px" }}>{success}</div>}
+      {error   && <div className="status status-error status-spacing">{error}</div>}
+      {success && <div className="status status-ok status-spacing">{success}</div>}
 
       {loading ? (
         <div className="hint">Cargando usuarios...</div>
       ) : (
         <div className="admin-user-grid">
           {users.map((u) => (
-            <div key={u.id} className="admin-user-card" style={{ cursor: "default" }}>
+            <div key={u.id} className="admin-user-card admin-user-card-static">
               <strong>{u.nombre}</strong>
               <span>@{u.username}</span>
-              <span style={{ fontSize: "0.72rem", color: "var(--muted)" }}>
+              <span className="admin-user-role">
                 {u.role === "admin" ? "Admin" : "Usuario"}
               </span>
-              <div style={{ display: "flex", gap: "6px", marginTop: "8px", flexWrap: "wrap" }}>
+              <div className="admin-card-actions">
                 <button
-                  className="btn btn-accent"
-                  style={{ fontSize: "0.72rem", padding: "3px 8px" }}
+                  className="btn btn-accent btn-compact"
                   onClick={() => { setResetTarget({ id: u.id, username: u.username }); setNewPassword(""); }}
                   type="button"
                 >
-                  🔑 Reset pass
+                  Reset pass
                 </button>
                 {u.role !== "admin" && (
                   <button
-                    className="btn btn-danger"
-                    style={{ fontSize: "0.72rem", padding: "3px 8px" }}
+                    className="btn btn-danger btn-compact"
                     onClick={() => handleDelete(u)}
                     type="button"
                   >
@@ -124,9 +122,9 @@ function AdminUsers({ onUsersChange }) {
       {resetTarget && (
         <form
           onSubmit={handleReset}
-          style={{ marginTop: "14px", display: "flex", gap: "8px", alignItems: "flex-end", flexWrap: "wrap" }}
+          className="admin-inline-form"
         >
-          <div className="field" style={{ flex: 1, minWidth: "200px" }}>
+          <div className="field admin-inline-field">
             <label>Nueva contraseña para @{resetTarget.username}</label>
             <input
               type="password"
@@ -142,10 +140,9 @@ function AdminUsers({ onUsersChange }) {
             {saving ? "Guardando..." : "Guardar"}
           </button>
           <button
-            className="btn"
+            className="btn btn-neutral"
             type="button"
             onClick={() => setResetTarget(null)}
-            style={{ background: "#e5e0d8", color: "#5a4f42" }}
           >
             Cancelar
           </button>
@@ -153,18 +150,17 @@ function AdminUsers({ onUsersChange }) {
       )}
 
       {/* Create user */}
-      <div style={{ marginTop: "16px" }}>
+      <div className="admin-create-block">
         <button
           className="btn btn-primary"
           type="button"
           onClick={() => setShowCreate((v) => !v)}
-          style={{ marginBottom: "10px" }}
         >
           {showCreate ? "Cancelar" : "+ Agregar usuario"}
         </button>
 
         {showCreate && (
-          <form onSubmit={handleCreate} className="grid-2" style={{ marginTop: "4px" }}>
+          <form onSubmit={handleCreate} className="grid-2 admin-create-form">
             <div className="field">
               <label>Nombre completo</label>
               <input

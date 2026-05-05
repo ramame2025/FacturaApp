@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:local": "concurrently \"node server-api.js\" \"vite\"",
     "dev:vision": "concurrently \"node server.js\" \"vite\"",
     "build": "vite build",
     "preview": "vite preview"
@@ -12,6 +13,7 @@
   "devDependencies": {
     "concurrently": "^9.2.1",
     "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "vite": "^8.0.10"
   },
   "dependencies": {
